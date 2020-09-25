@@ -1,6 +1,9 @@
-import React from 'react'; 
+import React, { useEffect, useState } from 'react'; 
 import styled from '@emotion/styled'
 import useMoneda from '../hooks/useMoneda'
+import useCriptomoneda from '../hooks/useCriptomoneda'
+import axios from 'axios';
+import Error from './Error'
 
 const Boton = styled.input`
     margin-top: 20px;
@@ -23,14 +26,64 @@ const Boton = styled.input`
 
 const Formulario = () => {
 
-    // Utilizamos useMoneda
+    // state del listado de criptomonedas
+    const [ listacripto, guardarCriptomonedas ] = useState([]);
+    const [ error, guardarError ] = useState(false);
 
-    const [ moneda, SelectMonedas, actualizarState ] = useMoneda();
+    const MONEDAS = [
+        { codigo: 'ARS', nombre: 'Peso argentino' },
+        { codigo: 'USD', nombre: 'Dolar Estadounidense' },
+        { codigo: 'MXN', nombre: 'Peso Mexicano' },
+        { codigo: 'EUR', nombre: 'Euro' },
+        { codigo: 'GBP', nombre: 'Libra Esterlina' },
+    ]
+
+    // Utilizamos useMoneda
+    const [ moneda, SelectMonedas] = useMoneda('Elige tu moneda', '', MONEDAS);
+
+    // Utilizamos useCriptomoneda
+    const [ criptoMoneda, SelectCripto ] = useCriptomoneda('Elige tu criptomoneda', '',listacripto);
+
+    // Llamado a la api
+
+    useEffect(()=> {
+        const consultarAPI = async () => {
+            const url = 'https://min-api.cryptocompare.com/data/top/mktcapfull?limit=10&tsym=USD';
+
+            const resultado = await axios.get(url);
+
+            guardarCriptomonedas(resultado.data.Data);
+        }
+        consultarAPI();
+
+    }, [])
+
+    // Cuando el usuario hace submit
+
+    const cotizarMoneda = e => {
+        e.preventDefault();
+
+        // validar si ambos campos estan llenos
+        if(moneda === '' || criptoMoneda === '') {
+            guardarError(true);
+            return;
+        }
+
+
+        // pasar los datos al componente principal
+        guardarError(false);
+    }
 
     return ( 
-        <form>
+        
+        <form
+            onSubmit={cotizarMoneda}
+        >
+            {error ? <Error mensaje="Todos los campos son obligatorios"/> : null}
             <SelectMonedas/>
-            
+
+            <SelectCripto/>
+
             <Boton
                 type="submit"
                 value="Calcular"
